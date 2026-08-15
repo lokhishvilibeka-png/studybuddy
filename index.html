@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyForge — Study Assistant</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg-card: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --accent: #a78bfa;
+    --accent-2: #34d399;
+    --text: #e8eaf2;
+    --text-dim: #8b90a8;
+    --danger: #f87171;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% 15%, rgba(167,139,250,0.14), transparent 40%),
+      radial-gradient(circle at 85% 85%, rgba(52,211,153,0.10), transparent 40%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .logo {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; box-shadow: 0 0 24px rgba(167,139,250,0.35);
+  }
+  .brand h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand p { font-size: 12px; color: var(--text-dim); }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab.active { background: var(--accent); color: #1a0f2e; font-weight: 600; }
+  .tab:not(.active):hover { color: var(--text); }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 26px;
+    backdrop-filter: blur(20px);
+    margin-bottom: 20px;
+    animation: fadeUp 0.35s ease;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+
+  .section-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim); margin-bottom: 14px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 160px;
+    padding: 14px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    resize: vertical;
+    outline: none;
+    font-family: inherit;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  input[type="number"], input[type="file"] {
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+
+  .btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: #1a0f2e;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(167,139,250,0.3);
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text); box-shadow:none; border: 1px solid var(--border); }
+  .btn-danger { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; }
+  .btn-good { background: linear-gradient(135deg, #34d399, #059669); color: #06251a; }
+
+  .hint { font-size: 12px; color: var(--text-dim); margin-top: 10px; }
+  .divider-text { text-align: center; font-size: 12px; color: var(--text-dim); margin: 14px 0; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-dim); font-size: 14px; }
+
+  /* Flashcards */
+  .flash-progress { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; text-align: center; }
+  .flashcard-outer {
+    perspective: 1200px;
+    height: 220px;
+    margin-bottom: 20px;
+  }
+  .flashcard-inner {
+    position: relative;
+    width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.5s;
+    cursor: pointer;
+  }
+  .flashcard-inner.flipped { transform: rotateY(180deg); }
+  .flashcard-face {
+    position: absolute;
+    width: 100%; height: 100%;
+    backface-visibility: hidden;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    font-size: 17px;
+    line-height: 1.5;
+  }
+  .flashcard-face.front { background: rgba(167,139,250,0.08); }
+  .flashcard-face.back { background: rgba(52,211,153,0.08); transform: rotateY(180deg); font-weight: 700; }
+  .flip-hint { font-size: 11px; color: var(--text-dim); position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); }
+
+  .flash-controls { display: flex; gap: 10px; justify-content: center; }
+
+  /* Quiz */
+  .quiz-question { font-size: 16px; margin-bottom: 18px; line-height: 1.5; }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-option {
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .quiz-option:hover { border-color: var(--accent); }
+  .quiz-option.correct { background: rgba(52,211,153,0.15); border-color: var(--accent-2); }
+  .quiz-option.incorrect { background: rgba(248,113,113,0.15); border-color: var(--danger); }
+  .quiz-progress { font-size: 13px; color: var(--text-dim); margin-bottom: 14px; }
+  .quiz-result { text-align: center; padding: 30px 0; }
+  .quiz-result h2 { font-size: 28px; margin-bottom: 8px; }
+  .quiz-result p { color: var(--text-dim); }
+
+  /* Study plan */
+  .plan-day {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+  .plan-day strong { color: var(--accent); }
+  .plan-day .review { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+
+  .disclaimer { font-size: 12px; color: var(--text-dim); text-align: center; margin-top: 24px; line-height: 1.6; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <div class="logo">📚</div>
+    <div>
+      <h1>StudyForge</h1>
+      <p>Turns your notes into flashcards, quizzes, and a study plan — no AI API needed</p>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="input" onclick="switchTab('input')">📝 Add Material</div>
+    <div class="tab" data-tab="flashcards" onclick="switchTab('flashcards')">🃏 Flashcards</div>
+    <div class="tab" data-tab="quiz" onclick="switchTab('quiz')">❓ Quiz</div>
+    <div class="tab" data-tab="plan" onclick="switchTab('plan')">📅 Study Plan</div>
+  </div>
+
+  <!-- INPUT TAB -->
+  <div id="tab-input" class="tab-content">
+    <div class="card">
+      <div class="section-title">Paste your notes</div>
+      <textarea id="notesInput" placeholder="Paste your study notes, textbook paragraph, or lecture summary here..."></textarea>
+      <div class="divider-text">— or —</div>
+      <div class="section-title">Upload a PDF</div>
+      <input type="file" id="pdfInput" accept="application/pdf" onchange="handlePdfUpload(event)">
+      <div class="hint" id="pdfStatus"></div>
+      <div class="row">
+        <button class="btn" onclick="processMaterial()">Generate Flashcards</button>
+      </div>
+      <div class="hint">Works best with clear factual sentences (definitions, processes, dates). Aim for at least a few paragraphs.</div>
+    </div>
+  </div>
+
+  <!-- FLASHCARDS TAB -->
+  <div id="tab-flashcards" class="tab-content hidden">
+    <div class="card" id="flashcardCard">
+      <div class="empty-state" id="flashEmpty">No flashcards yet — add material first.</div>
+      <div id="flashContent" class="hidden">
+        <div class="flash-progress" id="flashProgress"></div>
+        <div class="flashcard-outer">
+          <div class="flashcard-inner" id="flashInner" onclick="flipCard()">
+            <div class="flashcard-face front" id="flashFront"></div>
+            <div class="flashcard-face back" id="flashBack"></div>
+            <div class="flip-hint">Click to flip</div>
+          </div>
+        </div>
+        <div class="flash-controls">
+          <button class="btn-secondary btn" onclick="prevCard()">← Prev</button>
+          <button class="btn-danger btn" onclick="markCard(false)">Still learning</button>
+          <button class="btn-good btn" onclick="markCard(true)">Got it ✓</button>
+          <button class="btn-secondary btn" onclick="nextCard()">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ TAB -->
+  <div id="tab-quiz" class="tab-content hidden">
+    <div class="card" id="quizCard">
+      <div class="empty-state" id="quizEmpty">No flashcards yet — add material first.</div>
+      <div id="quizContent" class="hidden">
+        <div class="row" style="margin-top:0; margin-bottom:16px;">
+          <button class="btn btn-secondary" onclick="startQuiz()">🔁 Restart Quiz</button>
+        </div>
+        <div id="quizBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDY PLAN TAB -->
+  <div id="tab-plan" class="tab-content hidden">
+    <div class="card" id="planCard">
+      <div class="empty-state" id="planEmpty">No flashcards yet — add material first.</div>
+      <div id="planContent" class="hidden">
+        <div class="section-title">Days until your exam / deadline</div>
+        <div class="row">
+          <input type="number" id="daysInput" min="1" max="60" value="7">
+          <button class="btn" onclick="renderStudyPlan()">Build Plan</button>
+        </div>
+        <div id="planList" style="margin-top:20px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="disclaimer">
+    Flashcards and quizzes are generated locally from your text using keyword-extraction and
+    cloze-deletion — no data is uploaded anywhere, and no AI API is used.
+  </p>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+/* =========================================================
+   StudyForge — local flashcard / quiz / study-plan generator
+   No AI API. Uses keyword-frequency scoring + cloze deletion.
+   ========================================================= */
+
+if (window['pdfjsLib']) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+const STOPWORDS = new Set((
+  "a an the and or but if then else when while for to of in on at by with from into onto " +
+  "is are was were be been being have has had do does did will would could should may might must can " +
+  "this that these those it its as not no yes so than too very just also more most much many few " +
+  "there here what which who whom whose why how each every all any both either neither one two first " +
+  "second such other another same own only we you they he she i him her them us our your their his " +
+  "about above after again against below between during before out over under further once because " +
+  "through until up down off"
+).split(" "));
+
+let flashcards = [];
+let currentCardIndex = 0;
+let cardKnowledge = {}; // index -> true/false
+let quizQuestions = [];
+let quizIndex = 0;
+let quizScore = 0;
+let quizAnswered = false;
+
+// ---------- Tabs ----------
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.add("hidden"));
+  document.getElementById("tab-" + name).classList.remove("hidden");
+  if (name === "flashcards") refreshFlashcardsTab();
+  if (name === "quiz") refreshQuizTab();
+  if (name === "plan") refreshPlanTab();
+}
+
+// ---------- PDF handling ----------
+async function handlePdfUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById("pdfStatus");
+  statusEl.textContent = "Reading PDF...";
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      fullText += content.items.map(it => it.str).join(" ") + " ";
+    }
+    document.getElementById("notesInput").value = fullText.trim();
+    statusEl.textContent = `Extracted text from ${pdf.numPages} page(s). Click "Generate Flashcards" below.`;
+  } catch (err) {
+    statusEl.textContent = "Couldn't read that PDF. Try pasting the text directly instead.";
+  }
+}
+
+// ---------- Text processing ----------
+function splitSentences(text) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  const raw = clean.match(/[^.!?]+[.!?]+/g) || (clean ? [clean] : []);
+  return raw.map(s => s.trim()).filter(s => s.length >= 40 && s.length <= 240);
+}
+
+function tokenize(text) {
+  return (text.toLowerCase().match(/[a-z']+/g) || []);
+}
+
+function buildFrequencyMap(sentences) {
+  const freq = {};
+  for (const s of sentences) {
+    const words = new Set(tokenize(s).filter(w => w.length >= 4 && !STOPWORDS.has(w)));
+    for (const w of words) freq[w] = (freq[w] || 0) + 1;
+  }
+  return freq;
+}
+
+function pickKeyTerm(sentence, freq, totalSentences) {
+  const words = sentence.match(/[A-Za-z']+/g) || [];
+  let best = null, bestScore = -1;
+  const seen = new Set();
+  for (const w of words) {
+    const lw = w.toLowerCase();
+    if (lw.length < 4 || STOPWORDS.has(lw) || seen.has(lw)) continue;
+    seen.add(lw);
+    const df = freq[lw] || 0;
+    const docFrac = df / totalSentences;
+    if (totalSentences >= 5 && docFrac > 0.6) continue;
+    const score = df * 2 + w.length * 0.3 + (/^[A-Z]/.test(w) ? 1.5 : 0);
+    if (score > bestScore) { bestScore = score; best = w; }
+  }
+  return best ? { term: best, score: bestScore } : null;
+}
+
+function generateFlashcards(text, maxCards = 40) {
+  const sentences = splitSentences(text);
+  const freq = buildFrequencyMap(sentences);
+  const cards = [];
+  const usedTerms = new Set();
+
+  for (const s of sentences) {
+    const picked = pickKeyTerm(s, freq, sentences.length);
+    if (!picked) continue;
+    const key = picked.term.toLowerCase();
+    if (usedTerms.has(key)) continue;
+    usedTerms.add(key);
+
+    const re = new RegExp("\\b" + picked.term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b");
+    const front = s.replace(re, "_____");
+    if (front === s) continue;
+
+    cards.push({ front, back: picked.term, score: picked.score });
+  }
+
+  cards.sort((a, b) => b.score - a.score);
+  return cards.slice(0, maxCards);
+}
+
+function processMaterial() {
+  const text = document.getElementById("notesInput").value.trim();
+  if (text.length < 100) {
+    alert("Please add a bit more text (at least a few sentences) so there's enough to work with.");
+    return;
+  }
+  flashcards = generateFlashcards(text, 40);
+  cardKnowledge = {};
+  currentCardIndex = 0;
+
+  if (flashcards.length === 0) {
+    alert("Couldn't extract clear flashcards from this text — try adding more descriptive, factual sentences.");
+    return;
+  }
+
+  switchTab("flashcards");
+}
+
+// ---------- Flashcards ----------
+function refreshFlashcardsTab() {
+  const empty = document.getElementById("flashEmpty");
+  const content = document.getElementById("flashContent");
+  if (flashcards.length === 0) {
+    empty.classList.remove("hidden");
+    content.classList.add("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  content.classList.remove("hidden");
+  renderCard();
+}
+
+function renderCard() {
+  const card = flashcards[currentCardIndex];
+  document.getElementById("flashFront").textContent = card.front;
+  document.getElementById("flashBack").textContent = card.back;
+  document.getElementById("flashInner").classList.remove("flipped");
+  const known = Object.values(cardKnowledge).filter(v => v === true).length;
+  document.getElementById("flashProgress").textContent =
+    `Card ${currentCardIndex + 1} of ${flashcards.length} — ${known} marked "Got it"`;
+}
+
+function flipCard() {
+  document.getElementById("flashInner").classList.toggle("flipped");
+}
+
+function nextCard() {
+  currentCardIndex = (currentCardIndex + 1) % flashcards.length;
+  renderCard();
+}
+
+function prevCard() {
+  currentCardIndex = (currentCardIndex - 1 + flashcards.length) % flashcards.length;
+  renderCard();
+}
+
+function markCard(knowsIt) {
+  cardKnowledge[currentCardIndex] = knowsIt;
+  nextCard();
+}
+
+// ---------- Quiz ----------
+function refreshQuizTab() {
+  const empty = document.getElementById("quizEmpty");
+  const content = document.getElementById("quizContent");
+  if (flashcards.length === 0) {
+    empty.classList.remove("hidden");
+    content.classList.add("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  content.classList.remove("hidden");
+  if (quizQuestions.length === 0) startQuiz();
+}
+
+function startQuiz() {
+  const allAnswers = flashcards.map(c => c.back);
+  quizQuestions = flashcards.map(card => {
+    const distractorPool = allAnswers.filter(a => a.toLowerCase() !== card.back.toLowerCase());
+    const shuffled = [...distractorPool].sort(() => Math.random() - 0.5);
+    const distractors = shuffled.slice(0, 3);
+    const options = [...distractors, card.back].sort(() => Math.random() - 0.5);
+    return { question: card.front, correct: card.back, options };
+  }).sort(() => Math.random() - 0.5);
+
+  quizIndex = 0;
+  quizScore = 0;
+  quizAnswered = false;
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  const body = document.getElementById("quizBody");
+  if (quizIndex >= quizQuestions.length) {
+    const pct = Math.round((quizScore / quizQuestions.length) * 100);
+    body.innerHTML = `
+      <div class="quiz-result">
+        <h2>${quizScore} / ${quizQuestions.length}</h2>
+        <p>You scored ${pct}% on this round.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const q = quizQuestions[quizIndex];
+  quizAnswered = false;
+  body.innerHTML = `
+    <div class="quiz-progress">Question ${quizIndex + 1} of ${quizQuestions.length} — Score: ${quizScore}</div>
+    <div class="quiz-question">${escapeHtml(q.question)}</div>
+    <div class="quiz-options" id="quizOptions"></div>
+  `;
+  const optsEl = document.getElementById("quizOptions");
+  q.options.forEach(opt => {
+    const div = document.createElement("div");
+    div.className = "quiz-option";
+    div.textContent = opt;
+    div.onclick = () => selectAnswer(opt, q.correct, div);
+    optsEl.appendChild(div);
+  });
+}
+
+function selectAnswer(chosen, correct, el) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const isCorrect = chosen.toLowerCase() === correct.toLowerCase();
+  if (isCorrect) quizScore++;
+
+  document.querySelectorAll(".quiz-option").forEach(opt => {
+    if (opt.textContent.toLowerCase() === correct.toLowerCase()) opt.classList.add("correct");
+    else if (opt === el) opt.classList.add("incorrect");
+  });
+
+  setTimeout(() => {
+    quizIndex++;
+    renderQuizQuestion();
+  }, 900);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str || "";
+  return div.innerHTML;
+}
+
+// ---------- Study plan ----------
+function refreshPlanTab() {
+  const empty = document.getElementById("planEmpty");
+  const content = document.getElementById("planContent");
+  if (flashcards.length === 0) {
+    empty.classList.remove("hidden");
+    content.classList.add("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  content.classList.remove("hidden");
+  renderStudyPlan();
+}
+
+function generateStudyPlan(totalCards, days) {
+  days = Math.max(1, Math.min(60, days));
+  const perDay = Math.ceil(totalCards / days);
+  const plan = [];
+  let cursor = 0;
+  for (let d = 1; d <= days && cursor < totalCards; d++) {
+    const newCount = Math.min(perDay, totalCards - cursor);
+    const newRange = [cursor + 1, cursor + newCount];
+    cursor += newCount;
+    plan.push({
+      day: d,
+      newCards: newRange,
+      reviewCards: d > 1 ? [1, Math.min(cursor - newCount, totalCards)] : null
+    });
+  }
+  return plan;
+}
+
+function renderStudyPlan() {
+  const days = parseInt(document.getElementById("daysInput").value, 10) || 7;
+  const plan = generateStudyPlan(flashcards.length, days);
+  const listEl = document.getElementById("planList");
+  listEl.innerHTML = "";
+  for (const p of plan) {
+    const div = document.createElement("div");
+    div.className = "plan-day";
+    div.innerHTML = `
+      <strong>Day ${p.day}:</strong> Learn cards ${p.newCards[0]}–${p.newCards[1]}
+      ${p.reviewCards ? `<div class="review">Also review cards ${p.reviewCards[0]}–${p.reviewCards[1]}</div>` : ""}
+    `;
+    listEl.appendChild(div);
+  }
+}
+</script>
+</body>
+</html>
